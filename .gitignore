@@ -1,0 +1,11 @@
+build/
+*.o
+*.elf
+*.bin
+*.hex
+.vscode/
+.settings/
+.project
+.cproject
+CMakeUserPresets.json
+Drivers/
