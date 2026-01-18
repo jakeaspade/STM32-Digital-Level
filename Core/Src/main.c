@@ -14,14 +14,22 @@
   * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
+  * Program Overview:
+  * This program initializes an STM32 microcontroller to read accelerometer data
+  * from an MPU6050 sensor via I2C and transmits processed data over SPI to control
+  * an external device. The program uses a timer interrupt to periodically poll
+  * data from the MPU6050 and sends specific bit patterns based on the accelerometer
+  * readings along the X and Y axies led representations at 60hz.
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <mpu6050.h>
+#include "stm32f446xx.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <mpu6050.h>
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,10 +52,12 @@ I2C_HandleTypeDef hi2c1;
 
 SPI_HandleTypeDef hspi2;
 
+TIM_HandleTypeDef htim1;
+
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+volatile uint8_t read_mpu = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -56,6 +66,7 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_SPI2_Init(void);
+static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -97,6 +108,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   MX_SPI2_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   HAL_Delay(500);
   HAL_GPIO_WritePin(SR_RST_GPIO_Port, SR_RST_Pin, GPIO_PIN_RESET);
@@ -105,9 +117,11 @@ int main(void)
 
   mpu_init(&hi2c1);
 
-  static uint8_t i = 0;
-  static int16_t y = 0;
-  static int16_t x = 0;
+  
+  HAL_TIM_Base_Start_IT(&htim1);
+  int16_t x = 0;
+  int16_t y = 0;
+  uint8_t i = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -115,48 +129,50 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-//	  HAL_SPI_Transmit(&hspi2, &i, 1, 100);
-//	  HAL_GPIO_WritePin(SR_OUT_GPIO_Port, SR_OUT_Pin, GPIO_PIN_SET);
-//	  HAL_Delay(100);
-//	  HAL_GPIO_WritePin(SR_OUT_GPIO_Port, SR_OUT_Pin, GPIO_PIN_RESET);
-//	  mpu_accel_read(&hi2c1);
-//	  i++;
-//	  HAL_Delay(500);
-	  i = 0b00000000;
-	  y = mpu_get_accel_y(&hi2c1);
-	  x = mpu_get_accel_x(&hi2c1);
-
-	  if (x > 500)
-	  {
-		  i |= 0b00000001;
-	  }
-	  else if (x <= 500 && x >= -500)
-	  {
-		  i |= 0b00000010;
-	  }
-	  else if (x < -500)
-	  {
-		  i |= 0b00000100;
-	  }
-
-	  if (y > 500)
-	  {
-		  i |= 0b00010000;
-	  }
-	  else if (y <= 500 && y >= -500)
-	  {
-		  i |= 0b00100000;
-	  }
-	  else if (y < -500)
-	  {
-		  i |= 0b01000000;
-	  }
-
-	  HAL_SPI_Transmit(&hspi2, &i, 1, 100);
-	  HAL_GPIO_WritePin(SR_OUT_GPIO_Port, SR_OUT_Pin, GPIO_PIN_SET);
-	  HAL_GPIO_WritePin(SR_OUT_GPIO_Port, SR_OUT_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(100);
+    
     /* USER CODE BEGIN 3 */
+    if (read_mpu > 0)
+    {
+      read_mpu--;
+      i = 0b00000000;
+      // i represents the x and y axis states
+      // 0bX000X000
+      // i[7-5] = y axis
+      // i[3-1] = x axis
+      // i
+      y = mpu_get_accel_y(&hi2c1);
+      x = mpu_get_accel_x(&hi2c1);
+
+      if (x > 500)
+      {
+        i |= 0b00000001;
+      }
+      else if (x <= 500 && x >= -500)
+      {
+        i |= 0b00000010;
+      }
+      else if (x < -500)
+      {
+        i |= 0b00000100;
+      }
+
+      if (y > 500)
+      {
+        i |= 0b00010000;
+      }
+      else if (y <= 500 && y >= -500)
+      {
+        i |= 0b00100000;
+      }
+      else if (y < -500)
+      {
+        i |= 0b01000000;
+      }
+      
+      HAL_SPI_Transmit(&hspi2, &i, 1, 10);
+      HAL_GPIO_WritePin(SR_OUT_GPIO_Port, SR_OUT_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(SR_OUT_GPIO_Port, SR_OUT_Pin, GPIO_PIN_RESET);
+    }
   }
   /* USER CODE END 3 */
 }
@@ -281,6 +297,52 @@ static void MX_SPI2_Init(void)
 }
 
 /**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 21;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 63635;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -386,6 +448,13 @@ int _write(int file, char *ptr, int len)
   return len;
 }
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim->Instance == TIM1)
+  {
+    read_mpu++;
+  }
+}
 /* USER CODE END 4 */
 
 /**

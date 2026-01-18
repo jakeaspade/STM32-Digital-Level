@@ -58,21 +58,19 @@ void mpu_accel_read(I2C_HandleTypeDef* hi2c)
 int16_t mpu_get_accel_y(I2C_HandleTypeDef* hi2c)
 {
 	uint8_t data[2];
-	int16_t y;
-	HAL_I2C_Mem_Read(hi2c, MPU_ADDR << 1, MPU_ACCEL_YH, I2C_MEMADD_SIZE_8BIT, data, 2, 100);
-	y = (int16_t)(data[0] << 8) + data[1];
-	printf("y: %d \n", y);
-	return y;
+	int16_t Y;
+	HAL_I2C_Mem_Read(hi2c, MPU_ADDR << 1, MPU_ACCEL_YH, I2C_MEMADD_SIZE_8BIT, data, 2, 10);
+	Y = (int16_t)(data[0] << 8) + data[1];
+	return Y;
 }
 
 int16_t mpu_get_accel_x(I2C_HandleTypeDef* hi2c)
 {
 	uint8_t d[2];
-	int16_t x;
-	HAL_I2C_Mem_Read(hi2c, MPU_ADDR << 1, MPU_ACCEL_XH, I2C_MEMADD_SIZE_8BIT, d, 2, 100);
-	x = (int16_t)(d[0] << 8) + d[1];
-	printf("x: %d \n", x);
-	return x;
+	int16_t X;
+	HAL_I2C_Mem_Read(hi2c, MPU_ADDR << 1, MPU_ACCEL_XH, I2C_MEMADD_SIZE_8BIT, d, 2, 10);
+	X = (int16_t)(d[0] << 8) + d[1];
+	return X;
 }
 
 void mpu_init(I2C_HandleTypeDef* hi2c)
