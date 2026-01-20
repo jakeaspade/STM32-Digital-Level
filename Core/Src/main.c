@@ -115,13 +115,15 @@ int main(void)
   HAL_Delay(20);
   HAL_GPIO_WritePin(SR_RST_GPIO_Port, SR_RST_Pin, GPIO_PIN_SET);
 
-  mpu_init(&hi2c1);
+  mpu_init(&hi2c1, 2);
 
   
   HAL_TIM_Base_Start_IT(&htim1);
   int16_t x = 0;
+  int16_t z = 0;
   int16_t y = 0;
   uint8_t i = 0;
+  
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -142,6 +144,7 @@ int main(void)
       // i
       y = mpu_get_accel_y(&hi2c1);
       x = mpu_get_accel_x(&hi2c1);
+      z = mpu_get_accel_z(&hi2c1);
 
       if (x > 500)
       {

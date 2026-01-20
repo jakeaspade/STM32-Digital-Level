@@ -12,8 +12,9 @@
 
 void mpu_gyro_read(I2C_HandleTypeDef* hi2c);
 void mpu_accel_read(I2C_HandleTypeDef* hi2c);
-void mpu_init(I2C_HandleTypeDef* hi2c);
+void mpu_init(I2C_HandleTypeDef* hi2c, uint8_t scale);
 int16_t mpu_get_accel_y(I2C_HandleTypeDef* hi2c);
 int16_t mpu_get_accel_x(I2C_HandleTypeDef* hi2c);
+int16_t mpu_get_accel_z(I2C_HandleTypeDef* hi2c);
 
 #endif /* INC_MPU6050_H_ */

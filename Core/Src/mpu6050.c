@@ -6,6 +6,8 @@
  */
 
 #include <mpu6050.h>
+#include <stdint.h>
+#include <math.h>
 
 
 #define MPU_ADDR 0x68
@@ -27,6 +29,8 @@
 #define MPU_ACCEL_YL 0x3E
 #define MPU_ACCEL_ZH 0x3F
 #define MPU_ACCEL_ZL 0x40
+
+uint8_t accel_scale = 2; // +/- 2g by default
 
 void mpu_gyro_read(I2C_HandleTypeDef* hi2c)
 {
@@ -73,7 +77,16 @@ int16_t mpu_get_accel_x(I2C_HandleTypeDef* hi2c)
 	return X;
 }
 
-void mpu_init(I2C_HandleTypeDef* hi2c)
+int16_t mpu_get_accel_z(I2C_HandleTypeDef* hi2c)
+{
+	uint8_t d[2];
+	int16_t Z;
+	HAL_I2C_Mem_Read(hi2c, MPU_ADDR << 1, MPU_ACCEL_ZH, I2C_MEMADD_SIZE_8BIT, d, 2, 10);
+	Z = (int16_t)(d[0] << 8) + d[1];
+	return Z;
+}
+
+void mpu_init(I2C_HandleTypeDef* hi2c, uint8_t scale)
 {
 	if (HAL_I2C_IsDeviceReady(hi2c, MPU_ADDR << 1, 3, 5) != HAL_OK)
 	  {
@@ -85,12 +98,15 @@ void mpu_init(I2C_HandleTypeDef* hi2c)
 	  {
 		  if (recieved_data == MPU_ADDR)
 		  {
-			  printf("MPU Identified!\n");
-			  printf("Configuring registers\n");
-			  recieved_data = 0b00001000;
-			  HAL_I2C_Mem_Write(hi2c, MPU_ADDR << 1, MPU_GYRO_CONFIG, I2C_MEMADD_SIZE_8BIT, &recieved_data, 1, HAL_MAX_DELAY);
-			  HAL_I2C_Mem_Write(hi2c, MPU_ADDR << 1, MPU_ACCEL_CONFIG, I2C_MEMADD_SIZE_8BIT, &recieved_data, 1, HAL_MAX_DELAY);
-			  HAL_I2C_Mem_Write(hi2c, MPU_ADDR << 1, MPU_PWR_MGMT_1, I2C_MEMADD_SIZE_8BIT, &recieved_data, 1, HAL_MAX_DELAY);
+				printf("MPU Identified!\n");
+				printf("Configuring registers\n");
+				recieved_data = 0b00001000;
+				HAL_I2C_Mem_Write(hi2c, MPU_ADDR << 1, MPU_GYRO_CONFIG, I2C_MEMADD_SIZE_8BIT, &recieved_data, 1, HAL_MAX_DELAY);
+				recieved_data = 0b00001000;
+				HAL_I2C_Mem_Write(hi2c, MPU_ADDR << 1, MPU_ACCEL_CONFIG, I2C_MEMADD_SIZE_8BIT, &recieved_data, 1, HAL_MAX_DELAY);
+				accel_scale = pow(2, ((recieved_data & 0b00011000) >> 3) + 1);
+				recieved_data = 0b00001000;
+				HAL_I2C_Mem_Write(hi2c, MPU_ADDR << 1, MPU_PWR_MGMT_1, I2C_MEMADD_SIZE_8BIT, &recieved_data, 1, HAL_MAX_DELAY);
 		  }
 
 		  else
