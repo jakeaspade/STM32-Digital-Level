@@ -112,7 +112,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_Delay(500);
   HAL_GPIO_WritePin(SR_RST_GPIO_Port, SR_RST_Pin, GPIO_PIN_RESET);
-  HAL_Delay(20);
+  //HAL_Delay(20);
   HAL_GPIO_WritePin(SR_RST_GPIO_Port, SR_RST_Pin, GPIO_PIN_SET);
 
   mpu_init(&hi2c1, 2);
@@ -122,7 +122,7 @@ int main(void)
   int16_t x = 0;
   int16_t z = 0;
   int16_t y = 0;
-  uint8_t i = 0;
+  uint8_t lights = 0;
   
   /* USER CODE END 2 */
 
@@ -133,10 +133,10 @@ int main(void)
     /* USER CODE END WHILE */
     
     /* USER CODE BEGIN 3 */
-    if (read_mpu > 0)
+    if (read_mpu == 1)
     {
-      read_mpu--;
-      i = 0b00000000;
+      read_mpu = 0;
+      lights = 0b00000000;
       // i represents the x and y axis states
       // 0bX000X000
       // i[7-5] = y axis
@@ -148,31 +148,31 @@ int main(void)
 
       if (x > 500)
       {
-        i |= 0b00000001;
+        lights |= 0b00000001;
       }
       else if (x <= 500 && x >= -500)
       {
-        i |= 0b00000010;
+        lights |= 0b00000010;
       }
       else if (x < -500)
       {
-        i |= 0b00000100;
+        lights|= 0b00000100;
       }
 
       if (y > 500)
       {
-        i |= 0b00010000;
+        lights |= 0b00010000;
       }
       else if (y <= 500 && y >= -500)
       {
-        i |= 0b00100000;
+        lights |= 0b00100000;
       }
       else if (y < -500)
       {
-        i |= 0b01000000;
+        lights |= 0b01000000;
       }
       
-      HAL_SPI_Transmit(&hspi2, &i, 1, 10);
+      HAL_SPI_Transmit(&hspi2, &lights, 1, 10);
       HAL_GPIO_WritePin(SR_OUT_GPIO_Port, SR_OUT_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(SR_OUT_GPIO_Port, SR_OUT_Pin, GPIO_PIN_RESET);
     }
@@ -455,7 +455,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if (htim->Instance == TIM1)
   {
-    read_mpu++;
+    read_mpu = 1;
   }
 }
 /* USER CODE END 4 */
