@@ -30,7 +30,7 @@
 #define MPU_ACCEL_ZH 0x3F
 #define MPU_ACCEL_ZL 0x40
 
-uint8_t accel_scale = 2; // +/- 2g by default
+uint16_t accel_scale = 0;
 
 void mpu_gyro_read(I2C_HandleTypeDef* hi2c)
 {
@@ -59,31 +59,40 @@ void mpu_accel_read(I2C_HandleTypeDef* hi2c)
 
 }
 
-int16_t mpu_get_accel_x(I2C_HandleTypeDef* hi2c)
+/*
+	* Returns the x axis tilt in g's
+*/
+float mpu_get_accel_x(I2C_HandleTypeDef* hi2c)
 {
 	uint8_t d[2];
 	int16_t X = 0;
 	HAL_I2C_Mem_Read(hi2c, MPU_ADDR << 1, MPU_ACCEL_XH, I2C_MEMADD_SIZE_8BIT, d, 2, 10);
-	X = (int16_t)(d[0] << 8) + d[1];
-	return X;
+	X = (int16_t)(d[0] << 8 | d[1]);
+	return X / (float)accel_scale;
 }
 
-int16_t mpu_get_accel_y(I2C_HandleTypeDef* hi2c)
+/*
+	* Returns the y axis tilt in g's
+*/
+float mpu_get_accel_y(I2C_HandleTypeDef* hi2c)
 {
 	uint8_t data[2];
 	int16_t Y;
 	HAL_I2C_Mem_Read(hi2c, MPU_ADDR << 1, MPU_ACCEL_YH, I2C_MEMADD_SIZE_8BIT, data, 2, 10);
-	Y = (int16_t)(data[0] << 8) + data[1];
-	return Y;
+	Y = (int16_t)(data[0] << 8 | data[1]);
+	return Y / (float)accel_scale;
 }
 
-int16_t mpu_get_accel_z(I2C_HandleTypeDef* hi2c)
+/*
+	* Returns the z axis tilt in g's
+*/
+float mpu_get_accel_z(I2C_HandleTypeDef* hi2c)
 {
 	uint8_t d[2];
 	int16_t Z;
 	HAL_I2C_Mem_Read(hi2c, MPU_ADDR << 1, MPU_ACCEL_ZH, I2C_MEMADD_SIZE_8BIT, d, 2, 10);
-	Z = (int16_t)(d[0] << 8) + d[1];
-	return Z;
+	Z = (int16_t)(d[0] << 8 | d[1]);
+	return Z / (float)accel_scale;
 }
 
 void mpu_init(I2C_HandleTypeDef* hi2c, uint8_t scale)
@@ -102,9 +111,9 @@ void mpu_init(I2C_HandleTypeDef* hi2c, uint8_t scale)
 				printf("Configuring registers\n");
 				recieved_data = 0b00001000;
 				HAL_I2C_Mem_Write(hi2c, MPU_ADDR << 1, MPU_GYRO_CONFIG, I2C_MEMADD_SIZE_8BIT, &recieved_data, 1, HAL_MAX_DELAY);
-				recieved_data = 0b00001000;
+				recieved_data = 0b00011000;
 				HAL_I2C_Mem_Write(hi2c, MPU_ADDR << 1, MPU_ACCEL_CONFIG, I2C_MEMADD_SIZE_8BIT, &recieved_data, 1, HAL_MAX_DELAY);
-				accel_scale = pow(2, ((recieved_data & 0b00011000) >> 3) + 1);
+				accel_scale = (32767 / pow(2, ((recieved_data & 0b00011000) >> 3) + 1)) + 1;
 				recieved_data = 0b00001000;
 				HAL_I2C_Mem_Write(hi2c, MPU_ADDR << 1, MPU_PWR_MGMT_1, I2C_MEMADD_SIZE_8BIT, &recieved_data, 1, HAL_MAX_DELAY);
 		  }

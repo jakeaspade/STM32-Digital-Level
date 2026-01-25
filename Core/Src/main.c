@@ -112,16 +112,15 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_Delay(500);
   HAL_GPIO_WritePin(SR_RST_GPIO_Port, SR_RST_Pin, GPIO_PIN_RESET);
-  //HAL_Delay(20);
   HAL_GPIO_WritePin(SR_RST_GPIO_Port, SR_RST_Pin, GPIO_PIN_SET);
 
   mpu_init(&hi2c1, 2);
 
   
   HAL_TIM_Base_Start_IT(&htim1);
-  int16_t x = 0;
-  int16_t z = 0;
-  int16_t y = 0;
+  float x = 0;
+  float z = 0;
+  float y = 0;
   uint8_t lights = 0;
   
   /* USER CODE END 2 */
@@ -145,29 +144,29 @@ int main(void)
       y = mpu_get_accel_y(&hi2c1);
       x = mpu_get_accel_x(&hi2c1);
       z = mpu_get_accel_z(&hi2c1);
-
-      if (x > 500)
+      
+      if (x > .1)
       {
         lights |= 0b00000001;
       }
-      else if (x <= 500 && x >= -500)
+      else if (x <= .1 && x >= -.1)
       {
         lights |= 0b00000010;
       }
-      else if (x < -500)
+      else if (x < -.1)
       {
         lights|= 0b00000100;
       }
 
-      if (y > 500)
+      if (y > .1)
       {
         lights |= 0b00010000;
       }
-      else if (y <= 500 && y >= -500)
+      else if (y <= .1 && y >= -.1)
       {
         lights |= 0b00100000;
       }
-      else if (y < -500)
+      else if (y < -.1)
       {
         lights |= 0b01000000;
       }
