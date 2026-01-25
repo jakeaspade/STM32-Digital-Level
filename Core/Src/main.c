@@ -121,8 +121,14 @@ int main(void)
   float x = 0;
   float z = 0;
   float y = 0;
+  float prev_x = 0;
+  float prev_y = 0;
+  float prev_z = 0;
   uint8_t lights = 0;
-  
+
+  x = mpu_get_accel_x(&hi2c1);
+  y = mpu_get_accel_y(&hi2c1);
+  z = mpu_get_accel_z(&hi2c1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -136,37 +142,39 @@ int main(void)
     {
       read_mpu = 0;
       lights = 0b00000000;
+      prev_x = x;
+      prev_y = y;
+      prev_z = z;
+      x = prev_x + (mpu_get_accel_x(&hi2c1) - prev_x) * 0.2;
+      y = prev_y + (mpu_get_accel_y(&hi2c1) - prev_y) * 0.2;
+      z = prev_z + (mpu_get_accel_z(&hi2c1) - prev_z) * 0.2;
       // i represents the x and y axis states
       // 0bX000X000
       // i[7-5] = y axis
       // i[3-1] = x axis
       // i
-      y = mpu_get_accel_y(&hi2c1);
-      x = mpu_get_accel_x(&hi2c1);
-      z = mpu_get_accel_z(&hi2c1);
-      
-      if (x > .1)
+      if (x > .07)
       {
         lights |= 0b00000001;
       }
-      else if (x <= .1 && x >= -.1)
+      else if (x <= .07 && x >= -.07)
       {
         lights |= 0b00000010;
       }
-      else if (x < -.1)
+      else if (x < -.07)
       {
         lights|= 0b00000100;
       }
 
-      if (y > .1)
+      if (y > .07)
       {
         lights |= 0b00010000;
       }
-      else if (y <= .1 && y >= -.1)
+      else if (y <= .07 && y >= -.07)
       {
         lights |= 0b00100000;
       }
-      else if (y < -.1)
+      else if (y < -.07)
       {
         lights |= 0b01000000;
       }
